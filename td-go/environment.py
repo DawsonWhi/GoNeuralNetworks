@@ -1,5 +1,4 @@
 # go envrionment that stores the state of the game for the agent and gives out the reward
-# go envrionment that stores the state of the game for the agent and gives out the reward
 import numpy as np
 import agent
 
