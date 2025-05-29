@@ -175,47 +175,9 @@ class GoBoard:
         stone.group.calculate_liberties(self)
         return len(stone.group.liberties)
 
-# Example usage
-if __name__ == "__main__":
-    board_obj = GoBoard(9)
-    
-    # Test basic placement
-    board_obj.place_stone(Position(3, 3), 'b')
-    board_obj.place_stone(Position(3, 4), 'w')
-    print("After basic placement:")
-    board_obj.display()
-    
-    # Test capture
-    board_obj.place_stone(Position(2, 3), 'w')
-    board_obj.place_stone(Position(4, 3), 'w')
-    board_obj.place_stone(Position(3, 2), 'w')
-    board_obj.place_stone(Position(3, 4), 'w')  # Should capture black stone at (3,3)
-    print("\nAfter capture:")
-    board_obj.display()
 
-    #
-# 0 = empty, 1 = black, 2 = white 
-board = board_obj.board
 
-# track captured stones
-captured_black = 0
-captured_white = 0
-
-def print_board():
-    """Show the board"""
-    for row in board:
-        line = ""
-        for cell in row:
-            if cell == 0:
-                line += ". "
-            elif cell == 1:
-                line += "B "  # black
-            else:
-                line += "W "  # white
-        print(line)
-    print()
-
-def get_neighbors(row, col):
+def get_neighbors(row, col, board):
     """Get the 4 neighbors (up, down, left, right)"""
     neighbors = []
     # check all directions
@@ -229,28 +191,32 @@ def get_neighbors(row, col):
         neighbors.append((row, col+1))  # right
     return neighbors
 
-def is_surrounded_by_color(row, col, color):
+def is_surrounded_by_color(row, col, color, board):
     """Check if an empty spot is completely surrounded by one color"""
-    if board[row][col] != 0:  # not empty
+    if board[row][col] != None:  # not empty
         return False
     
+    print("test")
+
     # check direct neighbors
-    for nr, nc in get_neighbors(row, col):
-        if board[nr][nc] != color and board[nr][nc] != 0:
+    for nr, nc in get_neighbors(row, col, board):
+        if board[nr][nc] != color and board[nr][nc] != None:
+            print("test 2")
             return False  # false if it found diff color
     return True
 
-def count_territory(color):
+def count_territory(color, board):
     """Count empty spaces surrounded by your color"""
     territory = 0
     for row in range(len(board)):
         for col in range(len(board[0])):
-            if board[row][col] == 0:  # empty space
-                if is_surrounded_by_color(row, col, color):
+            if board[row][col] == None:  # empty space
+                print(row,col)
+                if is_surrounded_by_color(row, col, color, board):
                     territory += 1
     return territory
 
-def has_eyes(row, col):
+def has_eyes(row, col, board):
     """Super simple eye check - does this stone have empty space next to it?"""
     # count empty neighbors, if >=2 it has an "eye"
     empty_count = 0
@@ -259,7 +225,7 @@ def has_eyes(row, col):
             empty_count += 1
     return empty_count >= 2
 
-def capture_stones_without_eyes(color):
+def capture_stones_without_eyes(color, board):
     """Find opponent stones in your territory that don't have eyes"""
     opponent = 2 if color == 1 else 1  # opposite color
     captured = 0
@@ -270,8 +236,8 @@ def capture_stones_without_eyes(color):
             if board[row][col] == opponent:  # opponent stone
                 # check for neighbors
                 my_neighbors = 0
-                total_neighbors = 0
-                for nr, nc in get_neighbors(row, col):
+                total_neighbors = None
+                for nr, nc in get_neighbors(row, col, board):
                     total_neighbors += 1
                     if board[nr][nc] == color:
                         my_neighbors += 1
@@ -283,16 +249,21 @@ def capture_stones_without_eyes(color):
     
     return captured
 
-def calculate_score():
+def calculate_score(p_board):
     """Calculate final scores"""
+
+    board = p_board.board
+
+    #print(board)
+
     # black score
-    black_territory = count_territory(1)
-    black_captures = capture_stones_without_eyes(1)
+    black_territory = count_territory('b', board)
+    black_captures = capture_stones_without_eyes('b', board)
     black_total = black_territory + black_captures + captured_white
     
     # white score  
-    white_territory = count_territory(2)
-    white_captures = capture_stones_without_eyes(2)
+    white_territory = count_territory('w', board)
+    white_captures = capture_stones_without_eyes('w', board)
     white_total = white_territory + white_captures + captured_black + 6.5  # komi bonus
     
     print(f"Black: {black_total} points")
@@ -316,9 +287,47 @@ def calculate_score():
     
     return black_total, white_total
 
-# test
-print("Board:")
-print_board()
 
-print("Scoring...")
-calculate_score()
+
+#TEST IT
+board_obj = GoBoard(5)
+
+# Example usage
+if __name__ == "__main__":
+    
+    
+    # Test basic placement
+    board_obj.place_stone(Position(0, 0), 'b')
+    board_obj.place_stone(Position(1, 0), 'b')
+    board_obj.place_stone(Position(1, 1), 'b')
+    board_obj.place_stone(Position(0, 2), 'b')
+    board_obj.place_stone(Position(1, 3), 'b')
+    board_obj.place_stone(Position(0, 4), 'b')
+    print("After basic placement:")
+    board_obj.display()
+    
+    # Test capture
+    board_obj.place_stone(Position(2, 1), 'w')
+    board_obj.place_stone(Position(4, 1), 'w')
+    board_obj.place_stone(Position(1, 2), 'w')
+    board_obj.place_stone(Position(2, 2), 'w')
+    board_obj.place_stone(Position(3, 2), 'w')
+    board_obj.place_stone(Position(2, 3), 'w')
+    board_obj.place_stone(Position(1, 4), 'w')
+    board_obj.place_stone(Position(2, 4), 'w')
+    board_obj.place_stone(Position(3, 4), 'w')
+    print("\nAfter capture:")
+    board_obj.display()
+
+# 0 = empty, 1 = black, 2 = white 
+
+# track captured stones
+captured_black = 0
+captured_white = 0
+
+# test
+print("\nBoard:\n")
+board_obj.display()
+
+print("\nScoring...\n")
+calculate_score(board_obj)
