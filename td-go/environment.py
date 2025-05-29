@@ -37,8 +37,8 @@ class StoneGroup:
         self.liberties = set()
     
     def add_stone(self, stone: Stone):
-        if stone.group:
-            stone.group.remove_stone(stone)
+        #if stone.group:
+         #   stone.group.remove_stone(stone)
         self.stones.add(stone)
         stone.group = self
     
@@ -52,6 +52,7 @@ class StoneGroup:
             raise ValueError("Cannot merge groups of different colors")
         for stone in other_group.stones:
             self.add_stone(stone)
+        other_group.stones = set()
     
     def calculate_liberties(self, board: 'GoBoard'):
         """Calculate all liberties for this group"""
@@ -176,18 +177,148 @@ class GoBoard:
 
 # Example usage
 if __name__ == "__main__":
-    board = GoBoard(9)
+    board_obj = GoBoard(9)
     
     # Test basic placement
-    board.place_stone(Position(3, 3), 'b')
-    board.place_stone(Position(3, 4), 'w')
+    board_obj.place_stone(Position(3, 3), 'b')
+    board_obj.place_stone(Position(3, 4), 'w')
     print("After basic placement:")
-    board.display()
+    board_obj.display()
     
     # Test capture
-    board.place_stone(Position(2, 3), 'w')
-    board.place_stone(Position(4, 3), 'w')
-    board.place_stone(Position(3, 2), 'w')
-    board.place_stone(Position(3, 4), 'w')  # Should capture black stone at (3,3)
+    board_obj.place_stone(Position(2, 3), 'w')
+    board_obj.place_stone(Position(4, 3), 'w')
+    board_obj.place_stone(Position(3, 2), 'w')
+    board_obj.place_stone(Position(3, 4), 'w')  # Should capture black stone at (3,3)
     print("\nAfter capture:")
-    board.display()
+    board_obj.display()
+
+    #
+# 0 = empty, 1 = black, 2 = white 
+board = board_obj.board
+
+# track captured stones
+captured_black = 0
+captured_white = 0
+
+def print_board():
+    """Show the board"""
+    for row in board:
+        line = ""
+        for cell in row:
+            if cell == 0:
+                line += ". "
+            elif cell == 1:
+                line += "B "  # black
+            else:
+                line += "W "  # white
+        print(line)
+    print()
+
+def get_neighbors(row, col):
+    """Get the 4 neighbors (up, down, left, right)"""
+    neighbors = []
+    # check all directions
+    if row > 0:
+        neighbors.append((row-1, col))  # up
+    if row < len(board)-1:
+        neighbors.append((row+1, col))  # down
+    if col > 0:
+        neighbors.append((row, col-1))  # left
+    if col < len(board[0])-1:
+        neighbors.append((row, col+1))  # right
+    return neighbors
+
+def is_surrounded_by_color(row, col, color):
+    """Check if an empty spot is completely surrounded by one color"""
+    if board[row][col] != 0:  # not empty
+        return False
+    
+    # check direct neighbors
+    for nr, nc in get_neighbors(row, col):
+        if board[nr][nc] != color and board[nr][nc] != 0:
+            return False  # false if it found diff color
+    return True
+
+def count_territory(color):
+    """Count empty spaces surrounded by your color"""
+    territory = 0
+    for row in range(len(board)):
+        for col in range(len(board[0])):
+            if board[row][col] == 0:  # empty space
+                if is_surrounded_by_color(row, col, color):
+                    territory += 1
+    return territory
+
+def has_eyes(row, col):
+    """Super simple eye check - does this stone have empty space next to it?"""
+    # count empty neighbors, if >=2 it has an "eye"
+    empty_count = 0
+    for nr, nc in get_neighbors(row, col):
+        if board[nr][nc] == 0:
+            empty_count += 1
+    return empty_count >= 2
+
+def capture_stones_without_eyes(color):
+    """Find opponent stones in your territory that don't have eyes"""
+    opponent = 2 if color == 1 else 1  # opposite color
+    captured = 0
+    
+    # checks each stone
+    for row in range(len(board)):
+        for col in range(len(board[0])):
+            if board[row][col] == opponent:  # opponent stone
+                # check for neighbors
+                my_neighbors = 0
+                total_neighbors = 0
+                for nr, nc in get_neighbors(row, col):
+                    total_neighbors += 1
+                    if board[nr][nc] == color:
+                        my_neighbors += 1
+                
+                # if most neighbors are mine, piece has no eyes, capture
+                if my_neighbors >= total_neighbors - 1 and not has_eyes(row, col):
+                    board[row][col] = 0  # remove stone
+                    captured += 1
+    
+    return captured
+
+def calculate_score():
+    """Calculate final scores"""
+    # black score
+    black_territory = count_territory(1)
+    black_captures = capture_stones_without_eyes(1)
+    black_total = black_territory + black_captures + captured_white
+    
+    # white score  
+    white_territory = count_territory(2)
+    white_captures = capture_stones_without_eyes(2)
+    white_total = white_territory + white_captures + captured_black + 6.5  # komi bonus
+    
+    print(f"Black: {black_total} points")
+    print(f"  - Territory: {black_territory}")
+    print(f"  - Captured in territory: {black_captures}")
+    print(f"  - Previously captured: {captured_white}")
+    
+    print(f"White: {white_total} points")
+    print(f"  - Territory: {white_territory}")
+    print(f"  - Captured in territory: {white_captures}")
+    print(f"  - Previously captured: {captured_black}")
+    print(f"  - Komi bonus: 6.5")
+    
+
+    if black_total > white_total:
+        print(f"Black wins by {black_total - white_total} points!")
+    elif white_total > black_total:
+        print(f"White wins by {white_total - black_total} points!")
+    else:
+        print("It's a tie! (very rare)")
+    
+    return black_total, white_total
+
+# test
+print("Board:")
+print_board()
+
+print("Scoring...")
+calculate_score()
