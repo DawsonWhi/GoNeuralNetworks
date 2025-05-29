@@ -4,21 +4,11 @@ import agent
 from agent import Agent
 from collections import namedtuple
 from typing import List, Optional, Set, Dict
+from players import Player, Point
+from scoring import compute_game_result
 
 BOARDSIZE = 19
 Position = namedtuple("Position", ["x", "y"])
-
-
-# class Environment(object, object):
-#     def __init__(self, width=BOARDSIZE, height=BOARDSIZE):
-#         self.width = width
-#         self.height = height
-#         self.board = [0.0 for _ in range(width * height)]
-
-#     # Index 1d array as 2d coordinates
-#     def getIndex(self, x, y) -> int:
-#         return self.width * y + x
-
 
 
 class Stone:
@@ -37,8 +27,6 @@ class StoneGroup:
         self.liberties = set()
     
     def add_stone(self, stone: Stone):
-        #if stone.group:
-         #   stone.group.remove_stone(stone)
         self.stones.add(stone)
         stone.group = self
     
@@ -78,6 +66,15 @@ class GoBoard:
         self.groups = []
         self.previous_state = None  # For ko rule
     
+    def is_on_grid(self, point):
+        return 1 <= point.row <= self.num_rows and  1 <= point.col <= self.num_cols
+    
+    def get(self, point):
+        string = self._grid.get(point)
+        if string is None:
+            return None
+        return string.color
+
     def place_stone(self, position: Position, color: str) -> bool:
         """Place a stone and handle all Go rules, including captures and ko"""
         if not self.is_valid_position(position) or self.get_stone(position) is not None:
@@ -204,88 +201,6 @@ def is_surrounded_by_color(row, col, color, board):
             print("test 2")
             return False  # false if it found diff color
     return True
-
-def count_territory(color, board):
-    """Count empty spaces surrounded by your color"""
-    territory = 0
-    for row in range(len(board)):
-        for col in range(len(board[0])):
-            if board[row][col] == None:  # empty space
-                print(row,col)
-                if is_surrounded_by_color(row, col, color, board):
-                    territory += 1
-    return territory
-
-def has_eyes(row, col, board):
-    """Super simple eye check - does this stone have empty space next to it?"""
-    # count empty neighbors, if >=2 it has an "eye"
-    empty_count = 0
-    for nr, nc in get_neighbors(row, col):
-        if board[nr][nc] == 0:
-            empty_count += 1
-    return empty_count >= 2
-
-def capture_stones_without_eyes(color, board):
-    """Find opponent stones in your territory that don't have eyes"""
-    opponent = 2 if color == 1 else 1  # opposite color
-    captured = 0
-    
-    # checks each stone
-    for row in range(len(board)):
-        for col in range(len(board[0])):
-            if board[row][col] == opponent:  # opponent stone
-                # check for neighbors
-                my_neighbors = 0
-                total_neighbors = None
-                for nr, nc in get_neighbors(row, col, board):
-                    total_neighbors += 1
-                    if board[nr][nc] == color:
-                        my_neighbors += 1
-                
-                # if most neighbors are mine, piece has no eyes, capture
-                if my_neighbors >= total_neighbors - 1 and not has_eyes(row, col):
-                    board[row][col] = 0  # remove stone
-                    captured += 1
-    
-    return captured
-
-def calculate_score(p_board):
-    """Calculate final scores"""
-
-    board = p_board.board
-
-    #print(board)
-
-    # black score
-    black_territory = count_territory('b', board)
-    black_captures = capture_stones_without_eyes('b', board)
-    black_total = black_territory + black_captures + captured_white
-    
-    # white score  
-    white_territory = count_territory('w', board)
-    white_captures = capture_stones_without_eyes('w', board)
-    white_total = white_territory + white_captures + captured_black + 6.5  # komi bonus
-    
-    print(f"Black: {black_total} points")
-    print(f"  - Territory: {black_territory}")
-    print(f"  - Captured in territory: {black_captures}")
-    print(f"  - Previously captured: {captured_white}")
-    
-    print(f"White: {white_total} points")
-    print(f"  - Territory: {white_territory}")
-    print(f"  - Captured in territory: {white_captures}")
-    print(f"  - Previously captured: {captured_black}")
-    print(f"  - Komi bonus: 6.5")
-    
-
-    if black_total > white_total:
-        print(f"Black wins by {black_total - white_total} points!")
-    elif white_total > black_total:
-        print(f"White wins by {white_total - black_total} points!")
-    else:
-        print("It's a tie! (very rare)")
-    
-    return black_total, white_total
 
 
 
