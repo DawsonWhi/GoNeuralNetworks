@@ -240,9 +240,3 @@ if __name__ == "__main__":
 captured_black = 0
 captured_white = 0
 
-# test
-print("\nBoard:\n")
-board_obj.display()
-
-print("\nScoring...\n")
-calculate_score(board_obj)
