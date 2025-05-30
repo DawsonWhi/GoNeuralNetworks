@@ -15,13 +15,13 @@ class Territory(object):
         self.dame_points = []
         for point, status in territory_map.items():
             if status == Player.black:
-                self.num_black_stones += 1
+                self.num_b_stones += 1
             elif status == Player.white:
-                self.num_white_stones += 1
+                self.num_w_stones += 1
             elif status == 'territory_b':
-                self.num_black_territory += 1
+                self.num_b_territory += 1
             elif status == 'territory_w':
-                self.num_white_territory += 1
+                self.num_w_territory += 1
             elif status == 'dame':
                 self.num_dame += 1
                 self.dame_points.append(point)
@@ -49,7 +49,7 @@ def _collect_region(start_pos, board, visited=None):
     all_boarders = set()
     visited[start_pos] = True
     here = board.get(start_pos)
-    deltas = [(-1, 0), (1, 0), (0. -1), (0, 1)]
+    deltas = [(-1, 0), (1, 0), (0, -1), (0, 1)]
     for delta_r, delta_c in deltas:
         next_p = Point(row = start_pos.row + delta_r, col = start_pos.col + delta_c)
         if not board.is_on_grid(next_p):
@@ -86,8 +86,8 @@ def evaluate_territory(board):
     return Territory(status)
 
         
-def compute_game_result(game_state):
-    territory = evaluate_territory(game_state.board)
+def compute_game_result(board):
+    territory = evaluate_territory(board)
     return GameResults(
         b=territory.num_b_stones + territory.num_b_territory,
         w=territory.num_w_stones + territory.num_w_territory,

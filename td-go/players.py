@@ -6,6 +6,10 @@ class Player(enum.Enum):
     white = 2
 
     @property
+    def color(self):
+        return 'b' if self == Player.black else 'w'
+
+    @property
     def other(self):
         return Player.black if self == Player.white else Player.white
 
