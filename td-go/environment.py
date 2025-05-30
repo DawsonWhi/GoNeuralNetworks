@@ -261,7 +261,3 @@ if __name__ == "__main__":
 
     gameResult = compute_game_result(board_obj)
     print(gameResult)
-
-
-
-
