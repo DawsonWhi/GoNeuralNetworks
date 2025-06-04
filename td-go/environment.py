@@ -1,7 +1,7 @@
 # go environment that stores the state of the game for the agent and gives out the reward
 
-import agent
-from agent import Agent
+# import agent
+# from agent import Agent
 from collections import namedtuple
 from typing import List, Optional, Set, Dict
 from players import Player, Point
@@ -179,6 +179,8 @@ class GoBoard:
             self.groups.remove(group)
 
     def is_valid_position(self, position: Position) -> bool:
+        if position.x == -1 and position.y == -1:
+            return True
         return 0 <= position.x < self.size and 0 <= position.y < self.size
 
     def get_stone(self, position: Position) -> Optional[Stone]:
