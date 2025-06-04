@@ -4,7 +4,25 @@ from scoring import compute_game_result
 from collections import namedtuple
 
 class Game:
+
+    #Takes a Position and color of player and returns a string to give to the neural net
+    def input_to_move(self, move, color):
+        row = move[0] + 97
+        col = move[1] + 97
+        move_string = color.upper() + "[" + chr(row) + chr(col) + "]" 
+        return move_string
+
+    #Takes the string outputted by the neural net, parses it, and returns a Position
+    def move_to_input(self, move) -> Position:
+        for index, char in enumerate(move):
+            row = move[index+1]
+            col = move[index+2]
+            if char == "[" and row.islower() and row.isalpha() and col.islower() and col.isalpha():
+                return Position(ord(row)-97, ord(col)-97)
         
+        print("You did an oopsie: Invalid move given by bot")
+                
+
     def get_formatted_move(self, boardsize: int) -> Position:
         Position = namedtuple("Position", ["x", "y"])
         while True:
@@ -21,15 +39,14 @@ class Game:
             except ValueError:
                 print("Invalid format. Please enter as row,col (e.g., 3,4).")
 
-    def get_bot_move(self, boardsize) -> Position:
-        Position = namedtuple("Position", ["x", "y"])
-        # For now, the bot will just return a random valid position
-        import random
-        while True:
-            row = random.randint(0, boardsize - 1)
-            col = random.randint(0, boardsize - 1)
-            if (row, col) != (-1, -1):
-                return Position(row, col)
+    def get_bot_move(self, boardsize, prev_move, player) -> Position:
+        #Position = namedtuple("Position", ["x", "y"])
+
+        translate_prev_move = self.input_to_move(prev_move, player.color)
+        #Send translate_prev_move to neural net, 
+        move = input("Gimmie an input you robot!\n") #Remove when we get neural net intragrated
+        return self.move_to_input(move)
+
 
 
     def play_game(self, player1, player2, BOARDSIZE=19):
@@ -38,6 +55,7 @@ class Game:
         game_over = False
         valid_move = False
         pass_flag = 0
+        prev_move = Position(-1, -1)
 
         while not game_over | (pass_flag == 2):  # Game continues until two consecutive passes
 
@@ -54,7 +72,7 @@ class Game:
                     else:
                         pass_flag = 0
                 else:
-                    move = self.get_bot_move(BOARDSIZE)
+                    move = self.get_bot_move(BOARDSIZE, prev_move, current_player)
                     valid_move = board.place_stone(move, current_player.color)
                     if move.x == -1 and move.y == -1:
                         print(f"{current_player.name} passes.")
@@ -62,6 +80,8 @@ class Game:
                         pass_flag += 1
                     else:
                         pass_flag = 0
+
+            prev_move = move
 
             if current_player == player1:
                 current_player = player2
@@ -76,6 +96,6 @@ if __name__ == "__main__":
     player1 = Player(Player.black)
     player1.set_human_or_ai(True)
     player2 = Player(Player.white)
-    player2.set_human_or_ai(True)
+    player2.set_human_or_ai(False)
     test_game = Game()
     test_game.play_game(player1, player2, BOARDSIZE=5)
