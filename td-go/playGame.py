@@ -2,6 +2,20 @@ from environment import *
 from players import Player
 from scoring import compute_game_result
 from collections import namedtuple
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import Sequential, Model, load_model
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import LSTM
+import logging
+tf.get_logger().setLevel(logging.ERROR)
+WINDOW_LENGTH = 40
+WINDOW_STEP = 3
+BEAM_SIZE = 8
+NEXT_COORDINATES = 4
+MAX_LENGTH = 50
+load_model = tf.keras.models.load_model('saved_model.h5')
+
 
 class Game:
 
@@ -19,8 +33,7 @@ class Game:
             col = move[index+2]
             if char == "[" and row.islower() and row.isalpha() and col.islower() and col.isalpha():
                 return Position(ord(row)-97, ord(col)-97)
-        
-        print("You did an oopsie: Invalid move given by bot")
+
                 
 
     def get_formatted_move(self, boardsize: int) -> Position:
@@ -39,12 +52,9 @@ class Game:
             except ValueError:
                 print("Invalid format. Please enter as row,col (e.g., 3,4).")
 
-    def get_bot_move(self, boardsize, prev_move, player) -> Position:
-        #Position = namedtuple("Position", ["x", "y"])
-
+    def get_bot_move(self, prev_move, player) -> Position:
         translate_prev_move = self.input_to_move(prev_move, player.color)
-        #Send translate_prev_move to neural net, 
-        move = input("Gimmie an input you robot!\n") #Remove when we get neural net intragrated
+        move = ai_predict(translate_prev_move)
         return self.move_to_input(move)
 
 
@@ -91,6 +101,36 @@ class Game:
         result = compute_game_result(board)
         print("Game over!")
         print(result)
+
+def ai_predict(input_string):
+    for i in range(NEXT_COORDINATES):
+        minibatch_list = [input_string]
+    # Create minibatch from one-hot encodings, and predict.
+    for triple in beams:
+        minibatch_list.append(triple[2])
+    minibatch = np.array(minibatch_list)
+    y_predict = load_model.predict(minibatch, verbose=0)
+    new_beams = []
+    for j, softmax_vec in enumerate(y_predict):
+        triple = beams[j]
+        # Create BEAM_SIZE new beams from each existing beam.
+        for k in range(BEAM_SIZE):
+            char_index = np.argmax(softmax_vec)
+            new_prob = triple[0] + np.log(
+                softmax_vec[char_index])
+            new_letters = triple[1] + index_to_char[char_index]
+            x = np.zeros(encoding_width)
+            x[char_index] = 1
+            new_one_hots = triple[2].copy()
+            new_one_hots.append(x)
+            new_beams.append((new_prob, new_letters,
+                              new_one_hots))
+            softmax_vec[char_index] = 0
+    # Prune tree to only keep BEAM_SIZE most probable beams.
+    new_beams.sort(key=lambda tup: tup[0], reverse=True)
+    beams = new_beams[0:BEAM_SIZE]
+    output = str(beams[0][1])
+    return output
 
 if __name__ == "__main__":
     player1 = Player(Player.black)
