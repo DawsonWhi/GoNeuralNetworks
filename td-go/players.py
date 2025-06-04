@@ -13,6 +13,12 @@ class Player(enum.Enum):
     def other(self):
         return Player.black if self == Player.white else Player.white
 
+    def set_human_or_ai(self, is_human: bool):
+        self.is_human = is_human
+
+    def is_human(self):
+        return getattr(self, 'is_human', True)
+
 class Point(namedtuple('Point', 'row col')):
     def neighbors(self):
         return [

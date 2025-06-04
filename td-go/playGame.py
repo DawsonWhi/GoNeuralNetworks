@@ -21,6 +21,17 @@ class Game:
             except ValueError:
                 print("Invalid format. Please enter as row,col (e.g., 3,4).")
 
+    def get_bot_move(self, boardsize) -> Position:
+        Position = namedtuple("Position", ["x", "y"])
+        # For now, the bot will just return a random valid position
+        import random
+        while True:
+            row = random.randint(0, boardsize - 1)
+            col = random.randint(0, boardsize - 1)
+            if (row, col) != (-1, -1):
+                return Position(row, col)
+
+
     def play_game(self, player1, player2, BOARDSIZE=19):
         board = GoBoard(BOARDSIZE)
         current_player = player1
@@ -33,14 +44,24 @@ class Game:
             while(not valid_move): # valid_move is True when a valid move is made
                 board.display()
                 print(f"{current_player.name}'s turn ({current_player.color})")
-                move = self.get_formatted_move(BOARDSIZE)
-                valid_move = board.place_stone(move, current_player.color)
-                if move.x == -1 and move.y == -1:
-                    print(f"{current_player.name} passes.")
-                    valid_move = True
-                    pass_flag += 1
+                if current_player.is_human:
+                    move = self.get_formatted_move(BOARDSIZE)
+                    valid_move = board.place_stone(move, current_player.color)
+                    if move.x == -1 and move.y == -1:
+                        print(f"{current_player.name} passes.")
+                        valid_move = True
+                        pass_flag += 1
+                    else:
+                        pass_flag = 0
                 else:
-                    pass_flag = 0
+                    move = self.get_bot_move(BOARDSIZE)
+                    valid_move = board.place_stone(move, current_player.color)
+                    if move.x == -1 and move.y == -1:
+                        print(f"{current_player.name} passes.")
+                        valid_move = True
+                        pass_flag += 1
+                    else:
+                        pass_flag = 0
 
             if current_player == player1:
                 current_player = player2
@@ -53,6 +74,8 @@ class Game:
 
 if __name__ == "__main__":
     player1 = Player(Player.black)
+    player1.set_human_or_ai(True)
     player2 = Player(Player.white)
+    player2.set_human_or_ai(True)
     test_game = Game()
     test_game.play_game(player1, player2, BOARDSIZE=5)
