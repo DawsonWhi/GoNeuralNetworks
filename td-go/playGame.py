@@ -14,10 +14,22 @@ WINDOW_STEP = 3
 BEAM_SIZE = 8
 NEXT_COORDINATES = 4
 MAX_LENGTH = 50
+INPUT_FILE_NAME = 'GoExampleData.txt'
 load_model = tf.keras.models.load_model('saved_model.h5')
+
+file = open(INPUT_FILE_NAME, 'r', encoding='utf-8')
+text = file.read()
+file.close()
+text = text.replace('\n', ' ')
+text = text.replace('  ', ' ')
+text = text.replace('B', ' ')
+text = text.replace('W', ' ')
+text = text.replace(';', ' ')
+
 
 
 class Game:
+
 
     #Takes a Position and color of player and returns a string to give to the neural net
     def input_to_move(self, move, color):
@@ -82,7 +94,7 @@ class Game:
                     else:
                         pass_flag = 0
                 else:
-                    move = self.get_bot_move(BOARDSIZE, prev_move, current_player)
+                    move = self.get_bot_move(prev_move, current_player)
                     valid_move = board.place_stone(move, current_player.color)
                     if move.x == -1 and move.y == -1:
                         print(f"{current_player.name} passes.")
@@ -103,33 +115,48 @@ class Game:
         print(result)
 
 def ai_predict(input_string):
+    input_string = input_string.replace('W', ' ')
+    input_string = input_string.replace('B', ' ')
+    unique_chars = list(set(text))
+    char_to_index = dict((ch, index) for index, ch 
+                        in enumerate(unique_chars))
+    index_to_char = dict((index, ch) for index, ch 
+                        in enumerate(unique_chars))
+    encoding_width = len(char_to_index)
+    next_move = input_string
+    one_hots = []
+    for i, char in enumerate(next_move):
+        x = np.zeros(encoding_width)
+        x[char_to_index[char]] = 1
+        one_hots.append(x)
+    beams = [(np.log(1.0), next_move, one_hots)]
     for i in range(NEXT_COORDINATES):
-        minibatch_list = [input_string]
-    # Create minibatch from one-hot encodings, and predict.
-    for triple in beams:
-        minibatch_list.append(triple[2])
-    minibatch = np.array(minibatch_list)
-    y_predict = load_model.predict(minibatch, verbose=0)
-    new_beams = []
-    for j, softmax_vec in enumerate(y_predict):
-        triple = beams[j]
-        # Create BEAM_SIZE new beams from each existing beam.
-        for k in range(BEAM_SIZE):
-            char_index = np.argmax(softmax_vec)
-            new_prob = triple[0] + np.log(
-                softmax_vec[char_index])
-            new_letters = triple[1] + index_to_char[char_index]
-            x = np.zeros(encoding_width)
-            x[char_index] = 1
-            new_one_hots = triple[2].copy()
-            new_one_hots.append(x)
-            new_beams.append((new_prob, new_letters,
-                              new_one_hots))
-            softmax_vec[char_index] = 0
-    # Prune tree to only keep BEAM_SIZE most probable beams.
-    new_beams.sort(key=lambda tup: tup[0], reverse=True)
-    beams = new_beams[0:BEAM_SIZE]
-    output = str(beams[0][1])
+        minibatch_list = []
+        # Create minibatch from one-hot encodings, and predict.
+        for triple in beams:
+            minibatch_list.append(triple[2])
+        minibatch = np.array(minibatch_list)
+        y_predict = load_model.predict(minibatch, verbose=0)
+        new_beams = []
+        for j, softmax_vec in enumerate(y_predict):
+            triple = beams[j]
+            # Create BEAM_SIZE new beams from each existing beam.
+            for k in range(BEAM_SIZE):
+                char_index = np.argmax(softmax_vec)
+                new_prob = triple[0] + np.log(
+                    softmax_vec[char_index])
+                new_letters = triple[1] + index_to_char[char_index]
+                x = np.zeros(encoding_width)
+                x[char_index] = 1
+                new_one_hots = triple[2].copy()
+                new_one_hots.append(x)
+                new_beams.append((new_prob, new_letters,
+                                new_one_hots))
+                softmax_vec[char_index] = 0
+        # Prune tree to only keep BEAM_SIZE most probable beams.
+        new_beams.sort(key=lambda tup: tup[0], reverse=True)
+        beams = new_beams[0:BEAM_SIZE]
+    output = str(beams[1])
     return output
 
 if __name__ == "__main__":
